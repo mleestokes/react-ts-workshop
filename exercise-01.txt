@@ -1,0 +1,738 @@
+import React, { useState } from 'react';
+import { CheckTree, Sidebar, Content, Container } from 'rsuite';
+import 'rsuite/dist/rsuite.min.css';
+
+// TypeScript interfaces
+interface Subdivision {
+  id: string;
+  name: string;
+  value: string;
+  label: string;
+}
+
+interface Division {
+  id: string;
+  name: string;
+  value: string;
+  label: string;
+  children?: Subdivision[];
+}
+
+// Extended interfaces with work area content
+interface WorkAreaContent {
+  title: string;
+  description: string;
+  metrics: { label: string; value: string; trend: string }[];
+  recentActivity: string[];
+  keyTasks: string[];
+}
+
+interface Subdivision {
+  id: string;
+  name: string;
+  value: string;
+  label: string;
+  workContent?: WorkAreaContent;
+}
+
+interface Division {
+  id: string;
+  name: string;
+  value: string;
+  label: string;
+  children?: Subdivision[];
+  workContent?: WorkAreaContent;
+}
+
+// Sample data structure with work area content
+const divisions: Division[] = [
+  {
+    id: '1',
+    name: 'Engineering',
+    value: 'engineering',
+    label: 'Engineering',
+    workContent: {
+      title: 'Engineering Division Dashboard',
+      description: 'Overview of engineering teams, sprint progress, and technical metrics.',
+      metrics: [
+        { label: 'Active Developers', value: '42', trend: '+3' },
+        { label: 'Open Pull Requests', value: '18', trend: '-2' },
+        { label: 'Code Coverage', value: '87%', trend: '+1%' },
+        { label: 'Bug Count', value: '12', trend: '-5' }
+      ],
+      recentActivity: [
+        'Sprint 23 completed with 95% story completion',
+        'New CI/CD pipeline deployed successfully',
+        'Code review guidelines updated',
+        'Security audit passed with no critical issues'
+      ],
+      keyTasks: [
+        'Review architecture for Q2 projects',
+        'Update technical documentation',
+        'Plan team capacity for next quarter',
+        'Evaluate new development tools'
+      ]
+    },
+    children: [
+      { 
+        id: '1-1', 
+        name: 'Frontend', 
+        value: 'frontend', 
+        label: 'Frontend Development',
+        workContent: {
+          title: 'Frontend Development Team',
+          description: 'React, Vue.js, and Angular development team dashboard.',
+          metrics: [
+            { label: 'Components Built', value: '156', trend: '+12' },
+            { label: 'Bundle Size', value: '2.3MB', trend: '-0.1MB' },
+            { label: 'Performance Score', value: '94', trend: '+2' }
+          ],
+          recentActivity: [
+            'New design system components released',
+            'Performance optimization completed',
+            'Mobile responsiveness improved'
+          ],
+          keyTasks: [
+            'Implement new dashboard UI',
+            'Optimize loading performance',
+            'Update component library'
+          ]
+        }
+      },
+      { 
+        id: '1-2', 
+        name: 'Backend', 
+        value: 'backend', 
+        label: 'Backend Development',
+        workContent: {
+          title: 'Backend Development Team',
+          description: 'API development, database optimization, and server infrastructure.',
+          metrics: [
+            { label: 'API Endpoints', value: '89', trend: '+7' },
+            { label: 'Response Time', value: '145ms', trend: '-12ms' },
+            { label: 'Uptime', value: '99.8%', trend: '+0.1%' }
+          ],
+          recentActivity: [
+            'Database migration completed',
+            'New authentication system deployed',
+            'API rate limiting implemented'
+          ],
+          keyTasks: [
+            'Optimize database queries',
+            'Implement caching layer',
+            'Update API documentation'
+          ]
+        }
+      }
+    ]
+  },
+  {
+    id: '2',
+    name: 'Marketing',
+    value: 'marketing',
+    label: 'Marketing',
+    workContent: {
+      title: 'Marketing Division Dashboard',
+      description: 'Campaign performance, lead generation, and brand metrics.',
+      metrics: [
+        { label: 'Monthly Leads', value: '1,247', trend: '+156' },
+        { label: 'Conversion Rate', value: '3.4%', trend: '+0.2%' },
+        { label: 'Brand Awareness', value: '68%', trend: '+5%' },
+        { label: 'Campaign ROI', value: '4.2x', trend: '+0.3x' }
+      ],
+      recentActivity: [
+        'Q1 campaign exceeded targets by 23%',
+        'New brand guidelines launched',
+        'Social media engagement up 45%',
+        'Email marketing automation improved'
+      ],
+      keyTasks: [
+        'Plan Q2 product launch campaign',
+        'Analyze customer journey data',
+        'Optimize ad spend allocation',
+        'Develop content calendar'
+      ]
+    },
+    children: [
+      { 
+        id: '2-1', 
+        name: 'Digital', 
+        value: 'digital', 
+        label: 'Digital Marketing',
+        workContent: {
+          title: 'Digital Marketing Team',
+          description: 'Online advertising, SEO, and digital campaign management.',
+          metrics: [
+            { label: 'Click-through Rate', value: '2.8%', trend: '+0.3%' },
+            { label: 'Cost per Click', value: '$1.45', trend: '-$0.12' },
+            { label: 'Organic Traffic', value: '45K', trend: '+8K' }
+          ],
+          recentActivity: [
+            'Google Ads campaign optimized',
+            'Landing page conversion improved',
+            'SEO rankings increased for 23 keywords'
+          ],
+          keyTasks: [
+            'Launch retargeting campaign',
+            'A/B test new ad creatives',
+            'Optimize conversion funnels'
+          ]
+        }
+      }
+    ]
+  },
+  {
+    id: '3',
+    name: 'Sales',
+    value: 'sales',
+    label: 'Sales',
+    workContent: {
+      title: 'Sales Division Dashboard',
+      description: 'Revenue tracking, pipeline management, and sales team performance.',
+      metrics: [
+        { label: 'Monthly Revenue', value: '$245K', trend: '+$23K' },
+        { label: 'Pipeline Value', value: '$1.2M', trend: '+$180K' },
+        { label: 'Win Rate', value: '32%', trend: '+4%' },
+        { label: 'Avg Deal Size', value: '$8,500', trend: '+$400' }
+      ],
+      recentActivity: [
+        'Closed major enterprise deal worth $125K',
+        'New CRM integration completed',
+        'Sales training program launched',
+        'Q1 targets exceeded by 15%'
+      ],
+      keyTasks: [
+        'Follow up on warm leads',
+        'Prepare Q2 sales forecast',
+        'Update pricing strategy',
+        'Schedule client check-ins'
+      ]
+    },
+    children: [
+      { 
+        id: '3-1', 
+        name: 'Inside Sales', 
+        value: 'inside-sales', 
+        label: 'Inside Sales',
+        workContent: {
+          title: 'Inside Sales Team',
+          description: 'Inbound lead qualification and phone-based sales.',
+          metrics: [
+            { label: 'Calls Made', value: '2,847', trend: '+234' },
+            { label: 'Qualified Leads', value: '156', trend: '+18' },
+            { label: 'Conversion Rate', value: '12%', trend: '+1%' }
+          ],
+          recentActivity: [
+            'New lead scoring system implemented',
+            'Call scripts updated and tested',
+            'CRM workflow optimized'
+          ],
+          keyTasks: [
+            'Contact warm prospects',
+            'Update lead database',
+            'Schedule product demos'
+          ]
+        }
+      }
+    ]
+  }
+];
+
+const App: React.FC = () => {
+  const [checkedValues, setCheckedValues] = useState<string[]>([]);
+  const [expandedKeys, setExpandedKeys] = useState<string[]>(['1', '2']);
+
+  const handleCheck = (values: string[]) => {
+    setCheckedValues(values);
+    console.log('Selected values:', values); // For debugging in CodeSandbox
+  };
+
+  const handleExpand = (expandedKeys: string[]) => {
+    setExpandedKeys(expandedKeys);
+    console.log('Expanded keys:', expandedKeys); // For debugging
+  };
+
+  // Get all possible values for "Select All" functionality
+  const getAllValues = (): string[] => {
+    const allValues: string[] = [];
+    divisions.forEach(division => {
+      allValues.push(division.value);
+      division.children?.forEach(subdivision => {
+        allValues.push(subdivision.value);
+      });
+    });
+    return allValues;
+  };
+
+  const allValues = getAllValues();
+  const isAllSelected = allValues.length > 0 && allValues.every(value => checkedValues.includes(value));
+  const isPartiallySelected = checkedValues.length > 0 && !isAllSelected;
+
+  const handleSelectAll = (checked: boolean) => {
+    if (checked) {
+      setCheckedValues(allValues);
+      console.log('Selected all values:', allValues);
+    } else {
+      setCheckedValues([]);
+      console.log('Cleared all selections');
+    }
+  };
+
+  const getSelectedItems = (): { divisions: Division[], subdivisions: Subdivision[] } => {
+    const selectedDivisions: Division[] = [];
+    const selectedSubdivisions: Subdivision[] = [];
+
+    divisions.forEach(division => {
+      if (checkedValues.includes(division.value)) {
+        selectedDivisions.push(division);
+      }
+      
+      division.children?.forEach(subdivision => {
+        if (checkedValues.includes(subdivision.value)) {
+          selectedSubdivisions.push(subdivision);
+        }
+      });
+    });
+
+    return { divisions: selectedDivisions, subdivisions: selectedSubdivisions };
+  };
+
+  const selectedItems = getSelectedItems();
+
+  // Get work area content based on selection
+  const getWorkAreaContent = (): WorkAreaContent | null => {
+    if (checkedValues.length === 0) return null;
+    
+    // If only one item is selected, show its specific content
+    if (checkedValues.length === 1) {
+      const selectedValue = checkedValues[0];
+      
+      // Check divisions first
+      const division = divisions.find(d => d.value === selectedValue);
+      if (division?.workContent) return division.workContent;
+      
+      // Check subdivisions
+      for (const div of divisions) {
+        const subdivision = div.children?.find(s => s.value === selectedValue);
+        if (subdivision?.workContent) return subdivision.workContent;
+      }
+    }
+    
+    // Multiple selections - show combined overview
+    return {
+      title: `Multi-Department Overview (${checkedValues.length} selected)`,
+      description: 'Combined dashboard showing metrics from multiple departments and teams.',
+      metrics: [
+        { label: 'Total Teams', value: checkedValues.length.toString(), trend: `+${Math.floor(checkedValues.length * 0.1)}` },
+        { label: 'Active Projects', value: (checkedValues.length * 3).toString(), trend: '+2' },
+        { label: 'Team Members', value: (checkedValues.length * 12).toString(), trend: '+5' },
+        { label: 'Completion Rate', value: '89%', trend: '+3%' }
+      ],
+      recentActivity: [
+        'Cross-department collaboration increased',
+        'Shared resource allocation optimized',
+        'Inter-team communication improved',
+        'Joint project milestones achieved'
+      ],
+      keyTasks: [
+        'Coordinate cross-team initiatives',
+        'Review resource allocation',
+        'Schedule department sync meetings',
+        'Update shared project timelines'
+      ]
+    };
+  };
+
+  const workAreaContent = getWorkAreaContent();
+
+  return (
+    <div style={{ height: '100vh', display: 'flex', fontFamily: 'Arial, sans-serif' }}>
+      {/* Sidebar */}
+      <Sidebar
+        style={{
+          width: 320,
+          backgroundColor: '#f7f7fa',
+          borderRight: '1px solid #e5e5ea'
+        }}
+      >
+        <div style={{ padding: '20px 16px' }}>
+          <h4 style={{ 
+            margin: '0 0 16px 0', 
+            color: '#575757',
+            fontSize: '16px',
+            fontWeight: 600 
+          }}>
+            Organization Structure
+          </h4>
+
+          {/* Select All Checkbox */}
+          <div style={{
+            marginBottom: '16px',
+            padding: '12px 16px',
+            backgroundColor: 'white',
+            border: '1px solid #e5e5ea',
+            borderRadius: '6px',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px'
+          }}>
+            <input
+              type="checkbox"
+              id="select-all"
+              checked={isAllSelected}
+              ref={(input) => {
+                if (input) input.indeterminate = isPartiallySelected;
+              }}
+              onChange={(e) => handleSelectAll(e.target.checked)}
+              style={{
+                width: '16px',
+                height: '16px',
+                cursor: 'pointer'
+              }}
+            />
+            <label
+              htmlFor="select-all"
+              style={{
+                fontSize: '14px',
+                fontWeight: 500,
+                color: '#1a1a1a',
+                cursor: 'pointer',
+                userSelect: 'none'
+              }}
+            >
+              Select All
+            </label>
+            <span style={{
+              fontSize: '12px',
+              color: '#8e8e93',
+              marginLeft: 'auto'
+            }}>
+              ({allValues.length} items)
+            </span>
+          </div>
+          
+          <CheckTree
+            data={divisions}
+            value={checkedValues}
+            onChange={handleCheck}
+            onExpand={handleExpand}
+            expandItemValues={expandedKeys}
+            height={380}
+            cascade={false}
+            searchable
+            placeholder="Search divisions..."
+            style={{
+              border: '1px solid #e5e5ea',
+              borderRadius: '6px',
+              backgroundColor: 'white'
+            }}
+          />
+          
+          <div style={{ marginTop: '16px', fontSize: '12px', color: '#8e8e93' }}>
+            Selected: {checkedValues.length} of {allValues.length} items
+          </div>
+        </div>
+      </Sidebar>
+
+      {/* Main Content */}
+      <Container style={{ flex: 1, backgroundColor: 'white' }}>
+        <Content style={{ padding: '24px' }}>
+          {workAreaContent ? (
+            /* Dynamic Work Area */
+            <div>
+              <div style={{ 
+                marginBottom: '32px',
+                paddingBottom: '16px',
+                borderBottom: '2px solid #f0f0f0'
+              }}>
+                <h1 style={{ 
+                  margin: '0 0 8px 0', 
+                  color: '#1a1a1a',
+                  fontSize: '28px',
+                  fontWeight: 700 
+                }}>
+                  {workAreaContent.title}
+                </h1>
+                <p style={{
+                  margin: 0,
+                  color: '#666',
+                  fontSize: '16px',
+                  lineHeight: '1.5'
+                }}>
+                  {workAreaContent.description}
+                </p>
+              </div>
+
+              {/* Metrics Grid */}
+              <div style={{ marginBottom: '32px' }}>
+                <h3 style={{ 
+                  margin: '0 0 16px 0', 
+                  color: '#1a1a1a',
+                  fontSize: '20px',
+                  fontWeight: 600 
+                }}>
+                  Key Metrics
+                </h3>
+                <div style={{ 
+                  display: 'grid', 
+                  gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+                  gap: '16px'
+                }}>
+                  {workAreaContent.metrics.map((metric, index) => (
+                    <div
+                      key={index}
+                      style={{
+                        padding: '20px',
+                        backgroundColor: '#fafbfc',
+                        border: '1px solid #e1e5e9',
+                        borderRadius: '8px',
+                        textAlign: 'center'
+                      }}
+                    >
+                      <div style={{ 
+                        fontSize: '24px', 
+                        fontWeight: 700, 
+                        color: '#1a1a1a',
+                        marginBottom: '4px'
+                      }}>
+                        {metric.value}
+                      </div>
+                      <div style={{ 
+                        fontSize: '14px', 
+                        color: '#666',
+                        marginBottom: '8px'
+                      }}>
+                        {metric.label}
+                      </div>
+                      <div style={{ 
+                        fontSize: '12px', 
+                        color: metric.trend.startsWith('+') ? '#16a34a' : '#dc2626',
+                        fontWeight: 500
+                      }}>
+                        {metric.trend}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div style={{ 
+                display: 'grid', 
+                gridTemplateColumns: '1fr 1fr',
+                gap: '32px'
+              }}>
+                {/* Recent Activity */}
+                <div>
+                  <h3 style={{ 
+                    margin: '0 0 16px 0', 
+                    color: '#1a1a1a',
+                    fontSize: '20px',
+                    fontWeight: 600 
+                  }}>
+                    Recent Activity
+                  </h3>
+                  <div style={{
+                    backgroundColor: '#f8f9fa',
+                    border: '1px solid #e9ecef',
+                    borderRadius: '8px',
+                    padding: '16px'
+                  }}>
+                    {workAreaContent.recentActivity.map((activity, index) => (
+                      <div
+                        key={index}
+                        style={{
+                          padding: '12px 0',
+                          borderBottom: index < workAreaContent.recentActivity.length - 1 ? '1px solid #e9ecef' : 'none',
+                          display: 'flex',
+                          alignItems: 'flex-start'
+                        }}
+                      >
+                        <div style={{
+                          width: '6px',
+                          height: '6px',
+                          backgroundColor: '#28a745',
+                          borderRadius: '50%',
+                          marginTop: '6px',
+                          marginRight: '12px',
+                          flexShrink: 0
+                        }} />
+                        <div style={{ fontSize: '14px', color: '#495057', lineHeight: '1.4' }}>
+                          {activity}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Key Tasks */}
+                <div>
+                  <h3 style={{ 
+                    margin: '0 0 16px 0', 
+                    color: '#1a1a1a',
+                    fontSize: '20px',
+                    fontWeight: 600 
+                  }}>
+                    Key Tasks
+                  </h3>
+                  <div style={{
+                    backgroundColor: '#fff8e1',
+                    border: '1px solid #ffecb3',
+                    borderRadius: '8px',
+                    padding: '16px'
+                  }}>
+                    {workAreaContent.keyTasks.map((task, index) => (
+                      <div
+                        key={index}
+                        style={{
+                          padding: '12px 0',
+                          borderBottom: index < workAreaContent.keyTasks.length - 1 ? '1px solid #ffecb3' : 'none',
+                          display: 'flex',
+                          alignItems: 'flex-start'
+                        }}
+                      >
+                        <div style={{
+                          width: '16px',
+                          height: '16px',
+                          border: '2px solid #ff9800',
+                          borderRadius: '3px',
+                          marginTop: '2px',
+                          marginRight: '12px',
+                          flexShrink: 0
+                        }} />
+                        <div style={{ fontSize: '14px', color: '#bf360c', lineHeight: '1.4' }}>
+                          {task}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              {/* Selection Summary */}
+              <div style={{
+                marginTop: '32px',
+                padding: '16px',
+                backgroundColor: '#f1f3f4',
+                borderRadius: '8px',
+                border: '1px solid #dadce0'
+              }}>
+                <h4 style={{ margin: '0 0 12px 0', fontSize: '16px', fontWeight: 600 }}>
+                  Current Selection
+                </h4>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+                  {checkedValues.map(value => {
+                    // Find the label for this value
+                    let label = value;
+                    divisions.forEach(div => {
+                      if (div.value === value) label = div.label;
+                      div.children?.forEach(sub => {
+                        if (sub.value === value) label = sub.label;
+                      });
+                    });
+                    
+                    return (
+                      <span
+                        key={value}
+                        style={{
+                          padding: '4px 8px',
+                          backgroundColor: '#e8f0fe',
+                          color: '#1565c0',
+                          fontSize: '12px',
+                          borderRadius: '4px',
+                          border: '1px solid #bbdefb'
+                        }}
+                      >
+                        {label}
+                      </span>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+          ) : (
+            /* Default Empty State */
+            <div>
+              <h2 style={{ 
+                margin: '0 0 24px 0', 
+                color: '#1a1a1a',
+                fontSize: '24px',
+                fontWeight: 600 
+              }}>
+                Welcome to the Organization Dashboard
+              </h2>
+
+              <div style={{
+                padding: '60px 40px',
+                textAlign: 'center',
+                color: '#8e8e93',
+                backgroundColor: '#f7f7fa',
+                borderRadius: '12px',
+                border: '2px dashed #d1d1d6'
+              }}>
+                <div style={{ fontSize: '48px', marginBottom: '16px' }}>📊</div>
+                <h3 style={{ 
+                  margin: '0 0 8px 0', 
+                  color: '#5f5f5f',
+                  fontSize: '20px',
+                  fontWeight: 500 
+                }}>
+                  Select departments to view insights
+                </h3>
+                <p style={{ margin: 0, fontSize: '16px', lineHeight: '1.5' }}>
+                  Choose one or more divisions or subdivisions from the sidebar to see detailed metrics, 
+                  recent activity, and key tasks for your selected areas.
+                </p>
+              </div>
+
+              {/* Quick Stats */}
+              <div style={{ marginTop: '40px' }}>
+                <h3 style={{ 
+                  margin: '0 0 20px 0', 
+                  color: '#1a1a1a',
+                  fontSize: '18px',
+                  fontWeight: 600 
+                }}>
+                  Organization Overview
+                </h3>
+                <div style={{ 
+                  display: 'grid', 
+                  gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))',
+                  gap: '16px'
+                }}>
+                  <div style={{
+                    padding: '16px',
+                    backgroundColor: '#f0f9ff',
+                    borderRadius: '8px',
+                    textAlign: 'center'
+                  }}>
+                    <div style={{ fontSize: '20px', fontWeight: 600, color: '#0369a1' }}>
+                      {divisions.length}
+                    </div>
+                    <div style={{ fontSize: '12px', color: '#0369a1' }}>
+                      Divisions
+                    </div>
+                  </div>
+                  <div style={{
+                    padding: '16px',
+                    backgroundColor: '#f0fdf4',
+                    borderRadius: '8px',
+                    textAlign: 'center'
+                  }}>
+                    <div style={{ fontSize: '20px', fontWeight: 600, color: '#166534' }}>
+                      {divisions.reduce((acc, div) => acc + (div.children?.length || 0), 0)}
+                    </div>
+                    <div style={{ fontSize: '12px', color: '#166534' }}>
+                      Subdivisions
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+        </Content>
+      </Container>
+    </div>
+  );
+};
+
+export default App;
