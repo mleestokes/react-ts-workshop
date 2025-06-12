@@ -1,0 +1,610 @@
+import React, { useState, useMemo } from "react";
+import {
+  Box,
+  Typography,
+  Chip,
+  Stack,
+  FormControlLabel,
+  Checkbox,
+  TextField,
+  InputAdornment,
+  IconButton,
+} from "@mui/material";
+import { RichTreeView } from "@mui/x-tree-view/RichTreeView";
+import type { TreeViewBaseItem } from "@mui/x-tree-view/models";
+// Note: In a real project, you would import these icons from @mui/icons-material
+// For this example, we'll use text symbols
+// import { Search, Clear } from '@mui/icons-material';
+
+// Define the structure of our tree items
+interface CustomTreeItem extends TreeViewBaseItem {
+  id: string;
+  label: string;
+  children?: CustomTreeItem[];
+}
+
+// Sample tree data with deeper nesting
+const treeData: CustomTreeItem[] = [
+  {
+    id: "documents",
+    label: "Documents",
+    children: [
+      {
+        id: "work",
+        label: "Work",
+        children: [
+          {
+            id: "reports",
+            label: "Reports",
+            children: [
+              {
+                id: "quarterly",
+                label: "Quarterly Reports",
+                children: [
+                  { id: "q1-2024", label: "Q1 2024" },
+                  { id: "q2-2024", label: "Q2 2024" },
+                  { id: "q3-2024", label: "Q3 2024" },
+                  { id: "q4-2024", label: "Q4 2024" },
+                ],
+              },
+              {
+                id: "monthly",
+                label: "Monthly Reports",
+                children: [
+                  { id: "jan-2024", label: "January 2024" },
+                  { id: "feb-2024", label: "February 2024" },
+                  { id: "mar-2024", label: "March 2024" },
+                ],
+              },
+              { id: "annual-report", label: "Annual Report 2023" },
+            ],
+          },
+          {
+            id: "presentations",
+            label: "Presentations",
+            children: [
+              {
+                id: "client-meetings",
+                label: "Client Meetings",
+                children: [
+                  { id: "acme-corp", label: "ACME Corp Presentation" },
+                  { id: "tech-solutions", label: "Tech Solutions Pitch" },
+                ],
+              },
+              {
+                id: "internal-meetings",
+                label: "Internal Meetings",
+                children: [
+                  { id: "team-standup", label: "Team Standup Templates" },
+                  { id: "board-meeting", label: "Board Meeting Slides" },
+                ],
+              },
+            ],
+          },
+          {
+            id: "spreadsheets",
+            label: "Spreadsheets",
+            children: [
+              { id: "budget-2024", label: "Budget 2024" },
+              { id: "expense-tracker", label: "Expense Tracker" },
+              { id: "employee-records", label: "Employee Records" },
+            ],
+          },
+        ],
+      },
+      {
+        id: "personal",
+        label: "Personal",
+        children: [
+          {
+            id: "photos",
+            label: "Photos",
+            children: [
+              {
+                id: "vacation",
+                label: "Vacation",
+                children: [
+                  {
+                    id: "europe-2023",
+                    label: "Europe 2023",
+                    children: [
+                      { id: "paris", label: "Paris" },
+                      { id: "rome", label: "Rome" },
+                      { id: "barcelona", label: "Barcelona" },
+                    ],
+                  },
+                  { id: "beach-2024", label: "Beach Trip 2024" },
+                ],
+              },
+              {
+                id: "family",
+                label: "Family",
+                children: [
+                  { id: "birthday-parties", label: "Birthday Parties" },
+                  { id: "holidays", label: "Holidays" },
+                  { id: "graduation", label: "Graduation" },
+                ],
+              },
+            ],
+          },
+          {
+            id: "videos",
+            label: "Videos",
+            children: [
+              { id: "home-movies", label: "Home Movies" },
+              { id: "tutorials", label: "Tutorial Videos" },
+            ],
+          },
+        ],
+      },
+    ],
+  },
+  {
+    id: "downloads",
+    label: "Downloads",
+    children: [
+      {
+        id: "software",
+        label: "Software",
+        children: [
+          {
+            id: "development",
+            label: "Development Tools",
+            children: [
+              { id: "vscode", label: "VS Code Extensions" },
+              { id: "git-tools", label: "Git Tools" },
+              { id: "docker", label: "Docker Images" },
+            ],
+          },
+          {
+            id: "productivity",
+            label: "Productivity",
+            children: [
+              { id: "office-suite", label: "Office Suite" },
+              { id: "note-taking", label: "Note Taking Apps" },
+            ],
+          },
+        ],
+      },
+      {
+        id: "images",
+        label: "Images",
+        children: [
+          { id: "wallpapers", label: "Wallpapers" },
+          { id: "icons", label: "Icons" },
+          { id: "stock-photos", label: "Stock Photos" },
+        ],
+      },
+      {
+        id: "music",
+        label: "Music",
+        children: [
+          {
+            id: "albums",
+            label: "Albums",
+            children: [
+              { id: "rock", label: "Rock" },
+              { id: "jazz", label: "Jazz" },
+              { id: "classical", label: "Classical" },
+            ],
+          },
+          { id: "singles", label: "Singles" },
+          { id: "podcasts", label: "Podcasts" },
+        ],
+      },
+    ],
+  },
+  {
+    id: "projects",
+    label: "Projects",
+    children: [
+      {
+        id: "web-apps",
+        label: "Web Applications",
+        children: [
+          {
+            id: "react-app",
+            label: "React Applications",
+            children: [
+              {
+                id: "ecommerce",
+                label: "E-commerce Site",
+                children: [
+                  { id: "frontend", label: "Frontend Components" },
+                  { id: "backend", label: "Backend API" },
+                  { id: "database", label: "Database Schema" },
+                ],
+              },
+              { id: "dashboard", label: "Admin Dashboard" },
+              { id: "portfolio", label: "Portfolio Website" },
+            ],
+          },
+          {
+            id: "vue-app",
+            label: "Vue Applications",
+            children: [
+              { id: "blog-platform", label: "Blog Platform" },
+              { id: "task-manager", label: "Task Manager" },
+            ],
+          },
+          {
+            id: "angular-app",
+            label: "Angular Applications",
+            children: [
+              { id: "crm-system", label: "CRM System" },
+              { id: "inventory-mgmt", label: "Inventory Management" },
+            ],
+          },
+        ],
+      },
+      {
+        id: "mobile-apps",
+        label: "Mobile Applications",
+        children: [
+          {
+            id: "ios",
+            label: "iOS Apps",
+            children: [
+              { id: "weather-app", label: "Weather App" },
+              { id: "fitness-tracker", label: "Fitness Tracker" },
+            ],
+          },
+          {
+            id: "android",
+            label: "Android Apps",
+            children: [
+              { id: "note-app", label: "Note Taking App" },
+              { id: "expense-tracker-mobile", label: "Expense Tracker" },
+            ],
+          },
+          {
+            id: "cross-platform",
+            label: "Cross Platform",
+            children: [
+              { id: "flutter-app", label: "Flutter Projects" },
+              { id: "react-native", label: "React Native Apps" },
+            ],
+          },
+        ],
+      },
+      {
+        id: "data-science",
+        label: "Data Science",
+        children: [
+          {
+            id: "machine-learning",
+            label: "Machine Learning",
+            children: [
+              { id: "classification", label: "Classification Models" },
+              { id: "regression", label: "Regression Analysis" },
+              { id: "clustering", label: "Clustering Algorithms" },
+            ],
+          },
+          {
+            id: "data-visualization",
+            label: "Data Visualization",
+            children: [
+              { id: "dashboards", label: "Interactive Dashboards" },
+              { id: "charts", label: "Chart Libraries" },
+            ],
+          },
+        ],
+      },
+    ],
+  },
+];
+
+const RichTreeViewMultiSelectSearchable: React.FC = () => {
+  // State to track selected items
+  const [selectedItems, setSelectedItems] = useState<string[]>([]);
+  const [expandedItems, setExpandedItems] = useState<string[]>([
+    "documents",
+    "projects",
+    "work",
+    "reports",
+    "web-apps",
+    "react-app",
+  ]);
+  const [searchTerm, setSearchTerm] = useState<string>("");
+
+  // Filter tree data based on search term
+  const filteredTreeData = useMemo(() => {
+    if (!searchTerm.trim()) {
+      return treeData;
+    }
+
+    const searchLower = searchTerm.toLowerCase();
+
+    const filterNode = (node: CustomTreeItem): CustomTreeItem | null => {
+      const matchesSearch = node.label.toLowerCase().includes(searchLower);
+      const filteredChildren: CustomTreeItem[] = [];
+
+      // Recursively filter children
+      if (node.children) {
+        for (const child of node.children) {
+          const filteredChild = filterNode(child);
+          if (filteredChild) {
+            filteredChildren.push(filteredChild);
+          }
+        }
+      }
+
+      // Include node if it matches search OR has matching children
+      if (matchesSearch || filteredChildren.length > 0) {
+        return {
+          ...node,
+          children:
+            filteredChildren.length > 0 ? filteredChildren : node.children,
+        };
+      }
+
+      return null;
+    };
+
+    const filtered: CustomTreeItem[] = [];
+    for (const rootNode of treeData) {
+      const filteredNode = filterNode(rootNode);
+      if (filteredNode) {
+        filtered.push(filteredNode);
+      }
+    }
+
+    return filtered;
+  }, [searchTerm]);
+
+  // Auto-expand nodes when searching to show results
+  const searchExpandedItems = useMemo(() => {
+    if (!searchTerm.trim()) {
+      return expandedItems;
+    }
+
+    const getExpandableIds = (nodes: CustomTreeItem[]): string[] => {
+      const ids: string[] = [];
+      for (const node of nodes) {
+        if (node.children && node.children.length > 0) {
+          ids.push(node.id);
+          ids.push(...getExpandableIds(node.children));
+        }
+      }
+      return ids;
+    };
+
+    return [
+      ...new Set([...expandedItems, ...getExpandableIds(filteredTreeData)]),
+    ];
+  }, [searchTerm, expandedItems, filteredTreeData]);
+
+  // Handle selection changes
+  const handleSelectionChange = (
+    _event: React.SyntheticEvent | null,
+    itemIds: string[]
+  ) => {
+    setSelectedItems(itemIds);
+  };
+
+  // Helper function to get all item IDs from the tree (works with filtered data)
+  const getAllItemIds = useMemo(() => {
+    const extractIds = (items: CustomTreeItem[]): string[] => {
+      const ids: string[] = [];
+      for (const item of items) {
+        ids.push(item.id);
+        if (item.children) {
+          ids.push(...extractIds(item.children));
+        }
+      }
+      return ids;
+    };
+    return extractIds(filteredTreeData);
+  }, [filteredTreeData]);
+
+  // Calculate select all checkbox state
+  const selectAllState = useMemo(() => {
+    const totalItems = getAllItemIds.length;
+    const selectedCount = selectedItems.length;
+
+    if (selectedCount === 0) {
+      return { checked: false, indeterminate: false };
+    } else if (selectedCount === totalItems) {
+      return { checked: true, indeterminate: false };
+    } else {
+      return { checked: false, indeterminate: true };
+    }
+  }, [selectedItems.length, getAllItemIds.length]);
+
+  // Handle search input change
+  const handleSearchChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    setSearchTerm(event.target.value);
+  };
+
+  // Clear search
+  const handleClearSearch = () => {
+    setSearchTerm("");
+  };
+
+  // Handle select all / deselect all (now works with filtered data)
+  const handleSelectAll = (event: React.ChangeEvent<HTMLInputElement>) => {
+    if (event.target.checked) {
+      // Select all visible (filtered) items
+      const currentlyVisibleIds = getAllItemIds;
+      const newSelection = [
+        ...new Set([...selectedItems, ...currentlyVisibleIds]),
+      ];
+      setSelectedItems(newSelection);
+    } else {
+      // Deselect all visible (filtered) items
+      const currentlyVisibleIds = getAllItemIds;
+      setSelectedItems(
+        selectedItems.filter((id) => !currentlyVisibleIds.includes(id))
+      );
+    }
+  };
+
+  // Handle expansion changes
+  const handleExpandedItemsChange = (
+    _event: React.SyntheticEvent | null,
+    itemIds: string[]
+  ) => {
+    setExpandedItems(itemIds);
+  };
+
+  // Helper function to get item label by ID (for displaying selected items)
+  const getItemLabel = (id: string): string => {
+    const findItem = (items: CustomTreeItem[]): string | null => {
+      for (const item of items) {
+        if (item.id === id) {
+          return item.label;
+        }
+        if (item.children) {
+          const found = findItem(item.children);
+          if (found) return found;
+        }
+      }
+      return null;
+    };
+    return findItem(treeData) || id;
+  };
+
+  // Handle removing a selected item
+  const handleRemoveSelection = (itemId: string) => {
+    setSelectedItems((prev) => prev.filter((id) => id !== itemId));
+  };
+
+  return (
+    <Box sx={{ width: "100%", maxWidth: 600, margin: "auto", padding: 2 }}>
+      <Typography variant="h5" component="h1" gutterBottom>
+        RichTreeView with Multi-Select
+      </Typography>
+
+      <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+        Search and select multiple items from the tree below. Use the search box
+        to filter items, then select individual items or use "Select All" for
+        visible results.
+      </Typography>
+
+      {/* Search Input */}
+      <Box sx={{ mb: 2 }}>
+        <TextField
+          fullWidth
+          size="small"
+          placeholder="Search tree items..."
+          value={searchTerm}
+          onChange={handleSearchChange}
+          InputProps={{
+            startAdornment: (
+              <InputAdornment position="start">🔍</InputAdornment>
+            ),
+            endAdornment: searchTerm && (
+              <InputAdornment position="end">
+                <IconButton
+                  size="small"
+                  onClick={handleClearSearch}
+                  aria-label="clear search"
+                >
+                  ✕
+                </IconButton>
+              </InputAdornment>
+            ),
+          }}
+          sx={{ maxWidth: 400 }}
+        />
+      </Box>
+
+      {/* Search Results Info */}
+      {searchTerm && (
+        <Box sx={{ mb: 2 }}>
+          <Typography variant="body2" color="text.secondary">
+            {filteredTreeData.length === 0
+              ? `No results found for "${searchTerm}"`
+              : `Showing ${getAllItemIds.length} items matching "${searchTerm}"`}
+          </Typography>
+        </Box>
+      )}
+
+      {/* Select All Checkbox */}
+      <Box sx={{ mb: 2 }}>
+        <FormControlLabel
+          control={
+            <Checkbox
+              checked={selectAllState.checked}
+              indeterminate={selectAllState.indeterminate}
+              onChange={handleSelectAll}
+              size="small"
+            />
+          }
+          label={
+            <Typography variant="body2" fontWeight="medium">
+              {searchTerm
+                ? `Select All Visible (${
+                    selectedItems.filter((id) => getAllItemIds.includes(id))
+                      .length
+                  }/${getAllItemIds.length})`
+                : `Select All (${selectedItems.length}/${getAllItemIds.length})`}
+            </Typography>
+          }
+        />
+      </Box>
+
+      <Box sx={{ mb: 3 }}>
+        <RichTreeView
+          items={filteredTreeData}
+          selectedItems={selectedItems}
+          onSelectedItemsChange={handleSelectionChange}
+          expandedItems={searchExpandedItems}
+          onExpandedItemsChange={handleExpandedItemsChange}
+          multiSelect
+          checkboxSelection
+          sx={{
+            height: 300,
+            flexGrow: 1,
+            maxWidth: 400,
+            overflowY: 'auto',
+            border: '1px solid',
+            borderColor: 'divider',
+            borderRadius: 1,
+            padding: 1,
+          }}
+        />
+      </Box>
+
+      {/* Display selected items */}
+      <Box>
+        <Typography variant="h6" gutterBottom>
+          Selected Items ({selectedItems.length}):
+        </Typography>
+
+        {selectedItems.length === 0 ? (
+          <Typography variant="body2" color="text.secondary">
+            No items selected
+          </Typography>
+        ) : (
+          <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
+            {selectedItems.map((itemId) => (
+              <Chip
+                key={itemId}
+                label={getItemLabel(itemId)}
+                onDelete={() => handleRemoveSelection(itemId)}
+                variant="outlined"
+                size="small"
+                sx={{ mb: 1 }}
+              />
+            ))}
+          </Stack>
+        )}
+      </Box>
+
+      {/* Display selected IDs for debugging */}
+      <Box sx={{ mt: 2, p: 2, bgcolor: "grey.50", borderRadius: 1 }}>
+        <Typography variant="caption" display="block" gutterBottom>
+          Selected IDs:
+        </Typography>
+        <Typography variant="body2" fontFamily="monospace">
+          {selectedItems.length > 0
+            ? `[${selectedItems.map((id) => `"${id}"`).join(", ")}]`
+            : "[]"}
+        </Typography>
+      </Box>
+    </Box>
+  );
+};
+
+export default RichTreeViewMultiSelectSearchable;
