@@ -1,0 +1,442 @@
+import React, { useState } from 'react';
+import { useQuery, useQueryClient, QueryClient, QueryClientProvider } from '@tanstack/react-query';
+
+// Types
+interface ServiceDetails {
+  id: string;
+  name: string;
+  description: string;
+  status: 'active' | 'inactive' | 'pending';
+  createdAt: string;
+  updatedAt: string;
+  version: string;
+  category: string;
+}
+
+interface CacheStats {
+  totalQueries: number;
+  cacheHits: number;
+  networkCalls: number;
+}
+
+// Mock data and API call counter
+const mockData: Record<string, ServiceDetails[]> = {
+  'service-123': [
+    {
+      id: 'detail-1',
+      name: 'Authentication Service',
+      description: 'Handles user authentication and authorization',
+      status: 'active',
+      createdAt: '2024-01-15T10:30:00Z',
+      updatedAt: '2024-07-20T14:22:00Z',
+      version: '2.1.0',
+      category: 'Security'
+    },
+    {
+      id: 'detail-2',
+      name: 'Token Validation',
+      description: 'Validates JWT tokens and refresh mechanisms',
+      status: 'active',
+      createdAt: '2024-01-15T10:35:00Z',
+      updatedAt: '2024-07-19T09:15:00Z',
+      version: '1.8.2',
+      category: 'Security'
+    }
+  ],
+  'service-456': [
+    {
+      id: 'detail-3',
+      name: 'Email Notification',
+      description: 'Sends automated email notifications',
+      status: 'active',
+      createdAt: '2024-02-10T08:20:00Z',
+      updatedAt: '2024-07-15T13:45:00Z',
+      version: '3.2.1',
+      category: 'Communication'
+    }
+  ],
+  'service-789': [
+    {
+      id: 'detail-4',
+      name: 'Data Analytics',
+      description: 'Processes and analyzes user behavior data',
+      status: 'pending',
+      createdAt: '2024-03-05T12:00:00Z',
+      updatedAt: '2024-07-21T08:30:00Z',
+      version: '4.1.3',
+      category: 'Analytics'
+    }
+  ]
+};
+
+// Global stats tracking
+let globalStats: CacheStats = {
+  totalQueries: 0,
+  cacheHits: 0,
+  networkCalls: 0
+};
+
+// Mock API function with call tracking
+const fetchServiceDetails = async (serviceId: string): Promise<ServiceDetails[]> => {
+  globalStats.networkCalls++;
+  console.log(`🌐 NETWORK CALL #${globalStats.networkCalls} for service: ${serviceId}`);
+  
+  // Simulate network delay
+  await new Promise(resolve => setTimeout(resolve, 1000));
+  
+  const data = mockData[serviceId];
+  if (!data) {
+    throw new Error(`Service ${serviceId} not found`);
+  }
+  
+  return data;
+};
+
+// Hook with aggressive caching
+const useServiceDetailsWithCaching = (
+  serviceId: string,
+  cachingStrategy: 'aggressive' | 'conservative' | 'fresh' = 'conservative'
+) => {
+  globalStats.totalQueries++;
+  
+  const cacheConfig = {
+    aggressive: {
+      staleTime: 10 * 60 * 1000, // 10 minutes - data stays fresh for 10 min
+      cacheTime: 30 * 60 * 1000, // 30 minutes - cache kept in memory for 30 min
+      refetchOnWindowFocus: false,
+      refetchOnMount: false,
+      refetchOnReconnect: false,
+    },
+    conservative: {
+      staleTime: 2 * 60 * 1000, // 2 minutes
+      cacheTime: 10 * 60 * 1000, // 10 minutes
+      refetchOnWindowFocus: false,
+      refetchOnMount: 'always' as const,
+      refetchOnReconnect: true,
+    },
+    fresh: {
+      staleTime: 0, // Always consider stale
+      cacheTime: 1 * 60 * 1000, // 1 minute
+      refetchOnWindowFocus: true,
+      refetchOnMount: 'always' as const,
+      refetchOnReconnect: true,
+    }
+  };
+
+  const config = cacheConfig[cachingStrategy];
+
+  return useQuery({
+    queryKey: ['serviceDetails', serviceId, cachingStrategy],
+    queryFn: () => fetchServiceDetails(serviceId),
+    enabled: !!serviceId,
+    staleTime: config.staleTime,
+    cacheTime: config.cacheTime,
+    refetchOnWindowFocus: config.refetchOnWindowFocus,
+    refetchOnMount: config.refetchOnMount,
+    refetchOnReconnect: config.refetchOnReconnect,
+    retry: 1,
+  });
+};
+
+// Component to display service details
+const ServiceDetailsCard: React.FC<{ 
+  serviceId: string; 
+  cachingStrategy: 'aggressive' | 'conservative' | 'fresh';
+  title: string;
+}> = ({ serviceId, cachingStrategy, title }) => {
+  const { data, isLoading, isFetching, error, dataUpdatedAt } = useServiceDetailsWithCaching(
+    serviceId,
+    cachingStrategy
+  );
+
+  const lastUpdated = new Date(dataUpdatedAt).toLocaleTimeString();
+
+  return (
+    <div className="bg-white rounded-lg shadow-md p-4 border">
+      <div className="flex justify-between items-center mb-3">
+        <h3 className="text-lg font-semibold text-gray-800">{title}</h3>
+        <div className="flex items-center gap-2">
+          {isLoading && (
+            <span className="text-blue-600 text-xs">Loading...</span>
+          )}
+          {isFetching && !isLoading && (
+            <span className="text-orange-600 text-xs">Refetching...</span>
+          )}
+          {data && (
+            <span className="text-green-600 text-xs">Cached</span>
+          )}
+        </div>
+      </div>
+      
+      <div className="text-xs text-gray-500 mb-3">
+        Strategy: <span className="font-medium">{cachingStrategy}</span>
+        {data && <span className="ml-2">| Last updated: {lastUpdated}</span>}
+      </div>
+
+      {error ? (
+        <div className="text-red-600 text-sm">Error: {error.message}</div>
+      ) : data ? (
+        <div className="space-y-2">
+          {data.map((item) => (
+            <div key={item.id} className="p-2 bg-gray-50 rounded text-sm">
+              <div className="font-medium">{item.name}</div>
+              <div className="text-gray-600 text-xs">{item.description}</div>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <div className="text-gray-400 text-sm">No data</div>
+      )}
+    </div>
+  );
+};
+
+// Cache inspector component
+const CacheInspector: React.FC = () => {
+  const queryClient = useQueryClient();
+  const [cacheData, setCacheData] = useState<any[]>([]);
+
+  const inspectCache = () => {
+    const cache = queryClient.getQueryCache();
+    const queries = cache.getAll();
+    const cacheInfo = queries.map(query => ({
+      queryKey: JSON.stringify(query.queryKey),
+      dataUpdatedAt: new Date(query.dataUpdatedAt || 0).toLocaleTimeString(),
+      state: query.state.status,
+      isFetching: query.state.isFetching,
+      isStale: query.isStale(),
+      hasData: !!query.state.data
+    }));
+    setCacheData(cacheInfo);
+    
+    // Update cache hits calculation
+    globalStats.cacheHits = globalStats.totalQueries - globalStats.networkCalls;
+  };
+
+  const clearCache = () => {
+    queryClient.clear();
+    setCacheData([]);
+    globalStats = { totalQueries: 0, cacheHits: 0, networkCalls: 0 };
+  };
+
+  return (
+    <div className="bg-gray-50 rounded-lg p-4 border">
+      <div className="flex justify-between items-center mb-4">
+        <h3 className="text-lg font-semibold">Cache Inspector</h3>
+        <div className="flex gap-2">
+          <button
+            onClick={inspectCache}
+            className="px-3 py-1 bg-blue-600 text-white rounded text-sm hover:bg-blue-700"
+          >
+            Inspect Cache
+          </button>
+          <button
+            onClick={clearCache}
+            className="px-3 py-1 bg-red-600 text-white rounded text-sm hover:bg-red-700"
+          >
+            Clear Cache
+          </button>
+        </div>
+      </div>
+
+      {/* Cache Statistics */}
+      <div className="grid grid-cols-3 gap-4 mb-4">
+        <div className="bg-white p-3 rounded border text-center">
+          <div className="text-2xl font-bold text-blue-600">{globalStats.totalQueries}</div>
+          <div className="text-xs text-gray-600">Total Queries</div>
+        </div>
+        <div className="bg-white p-3 rounded border text-center">
+          <div className="text-2xl font-bold text-green-600">{globalStats.cacheHits}</div>
+          <div className="text-xs text-gray-600">Cache Hits</div>
+        </div>
+        <div className="bg-white p-3 rounded border text-center">
+          <div className="text-2xl font-bold text-orange-600">{globalStats.networkCalls}</div>
+          <div className="text-xs text-gray-600">Network Calls</div>
+        </div>
+      </div>
+
+      {/* Cache Hit Ratio */}
+      <div className="mb-4">
+        <div className="text-sm font-medium mb-1">
+          Cache Hit Ratio: {globalStats.totalQueries > 0 
+            ? Math.round((globalStats.cacheHits / globalStats.totalQueries) * 100) 
+            : 0}%
+        </div>
+        <div className="w-full bg-gray-200 rounded-full h-2">
+          <div 
+            className="bg-green-600 h-2 rounded-full transition-all duration-300"
+            style={{ 
+              width: globalStats.totalQueries > 0 
+                ? `${(globalStats.cacheHits / globalStats.totalQueries) * 100}%` 
+                : '0%' 
+            }}
+          ></div>
+        </div>
+      </div>
+
+      {/* Cache Details */}
+      {cacheData.length > 0 && (
+        <div className="space-y-2">
+          <h4 className="font-medium text-sm">Cached Queries:</h4>
+          {cacheData.map((item, index) => (
+            <div key={index} className="bg-white p-2 rounded border text-xs">
+              <div className="font-medium">{item.queryKey}</div>
+              <div className="text-gray-600">
+                Status: {item.state} | 
+                Updated: {item.dataUpdatedAt} | 
+                Stale: {item.isStale ? 'Yes' : 'No'}
+                {item.isFetching && ' | Fetching...'}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+};
+
+// Main demo component
+const CachingDemo: React.FC = () => {
+  const [selectedService, setSelectedService] = useState('service-123');
+  const [showMultiple, setShowMultiple] = useState(false);
+
+  const services = [
+    { id: 'service-123', name: 'Auth Service' },
+    { id: 'service-456', name: 'Notification Service' },
+    { id: 'service-789', name: 'Analytics Service' }
+  ];
+
+  return (
+    <div className="min-h-screen bg-gray-100 p-6">
+      <div className="max-w-6xl mx-auto">
+        <h1 className="text-3xl font-bold text-gray-900 mb-6">
+          React Query Caching Strategies Demo
+        </h1>
+
+        <div className="mb-6 bg-blue-50 border border-blue-200 rounded-lg p-4">
+          <h2 className="font-semibold text-blue-800 mb-2">How to Test Caching:</h2>
+          <ul className="text-blue-700 text-sm space-y-1">
+            <li>• Switch between services to see cache hits vs network calls</li>
+            <li>• Toggle "Show All Strategies" to see different caching behaviors</li>
+            <li>• Watch the cache statistics update in real-time</li>
+            <li>• Aggressive caching = fewer network calls, Fresh = more network calls</li>
+          </ul>
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+          <div>
+            <label className="block text-sm font-medium mb-2">Select Service:</label>
+            <select
+              value={selectedService}
+              onChange={(e) => setSelectedService(e.target.value)}
+              className="w-full p-2 border rounded"
+            >
+              {services.map(service => (
+                <option key={service.id} value={service.id}>
+                  {service.name}
+                </option>
+              ))}
+            </select>
+          </div>
+          
+          <div>
+            <label className="block text-sm font-medium mb-2">Display Mode:</label>
+            <button
+              onClick={() => setShowMultiple(!showMultiple)}
+              className={`w-full p-2 rounded transition-colors ${
+                showMultiple 
+                  ? 'bg-green-600 text-white' 
+                  : 'bg-gray-200 text-gray-700'
+              }`}
+            >
+              {showMultiple ? 'Showing All Strategies' : 'Show All Strategies'}
+            </button>
+          </div>
+
+          <CacheInspector />
+        </div>
+
+        {showMultiple ? (
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <ServiceDetailsCard
+              serviceId={selectedService}
+              cachingStrategy="aggressive"
+              title="Aggressive Caching"
+            />
+            <ServiceDetailsCard
+              serviceId={selectedService}
+              cachingStrategy="conservative"
+              title="Conservative Caching"
+            />
+            <ServiceDetailsCard
+              serviceId={selectedService}
+              cachingStrategy="fresh"
+              title="Always Fresh"
+            />
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 gap-6">
+            <ServiceDetailsCard
+              serviceId={selectedService}
+              cachingStrategy="conservative"
+              title="Service Details (Conservative Caching)"
+            />
+          </div>
+        )}
+
+        <div className="mt-8 bg-white rounded-lg p-6 border">
+          <h3 className="text-lg font-semibold mb-4">Caching Strategy Explanation</h3>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+            <div className="p-3 bg-green-50 rounded border">
+              <h4 className="font-medium text-green-800">Aggressive Caching</h4>
+              <ul className="text-green-700 mt-2 space-y-1">
+                <li>• 10min stale time</li>
+                <li>• 30min cache time</li>
+                <li>• No refetch on focus</li>
+                <li>• Minimal network calls</li>
+              </ul>
+            </div>
+            <div className="p-3 bg-yellow-50 rounded border">
+              <h4 className="font-medium text-yellow-800">Conservative Caching</h4>
+              <ul className="text-yellow-700 mt-2 space-y-1">
+                <li>• 2min stale time</li>
+                <li>• 10min cache time</li>
+                <li>• Balanced approach</li>
+                <li>• Good for most use cases</li>
+              </ul>
+            </div>
+            <div className="p-3 bg-red-50 rounded border">
+              <h4 className="font-medium text-red-800">Always Fresh</h4>
+              <ul className="text-red-700 mt-2 space-y-1">
+                <li>• 0 stale time</li>
+                <li>• 1min cache time</li>
+                <li>• Refetch on focus</li>
+                <li>• Most network calls</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// QueryClient with caching configuration
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 2 * 60 * 1000, // 2 minutes default
+      cacheTime: 10 * 60 * 1000, // 10 minutes default
+      refetchOnWindowFocus: false,
+      retry: 1,
+    },
+  },
+});
+
+export default function ReactQueryCachingDemo() {
+  return (
+    <QueryClientProvider client={queryClient}>
+      <CachingDemo />
+    </QueryClientProvider>
+  );
+}
