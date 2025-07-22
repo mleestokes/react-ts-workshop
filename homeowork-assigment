@@ -1,0 +1,132 @@
+import { useQueries, UseQueryResult } from '@tanstack/react-query';
+
+// Define the shape of your service data
+interface ServiceData {
+  id: string;
+  name: string;
+  status: 'active' | 'inactive' | 'maintenance';
+  version: string;
+  uptime: number;
+  // Add more properties as needed based on your API response
+}
+
+// API function to fetch a single service
+const fetchServiceData = async (serviceName: string): Promise<ServiceData> => {
+  const response = await fetch(`/api/services/${serviceName}`);
+  
+  if (!response.ok) {
+    throw new Error(`Failed to fetch service: ${serviceName}`);
+  }
+  
+  return response.json();
+};
+
+// Hook configuration options
+interface UseServicesDataOptions {
+  enabled?: boolean;
+  staleTime?: number;
+  cacheTime?: number;
+  refetchInterval?: number;
+  refetchOnWindowFocus?: boolean;
+}
+
+// Return type for the hook
+interface UseServicesDataReturn {
+  services: (ServiceData | undefined)[];
+  isLoading: boolean;
+  isError: boolean;
+  errors: (Error | null)[];
+  isSuccess: boolean;
+  refetchAll: () => void;
+  queries: UseQueryResult<ServiceData, Error>[];
+}
+
+/**
+ * Custom hook to fetch data for multiple services using React Query
+ * 
+ * @param selectedServiceNames - Array of service names to fetch data for
+ * @param options - Optional configuration for the queries
+ * @returns Object containing service data, loading states, and utility functions
+ */
+export const useServicesData = (
+  selectedServiceNames: string[],
+  options: UseServicesDataOptions = {}
+): UseServicesDataReturn => {
+  const {
+    enabled = true,
+    staleTime = 5 * 60 * 1000, // 5 minutes
+    cacheTime = 10 * 60 * 1000, // 10 minutes
+    refetchInterval,
+    refetchOnWindowFocus = true,
+  } = options;
+
+  const queries = useQueries({
+    queries: selectedServiceNames.map((serviceName) => ({
+      queryKey: ['service', serviceName],
+      queryFn: () => fetchServiceData(serviceName),
+      enabled: enabled && Boolean(serviceName),
+      staleTime,
+      cacheTime,
+      refetchInterval,
+      refetchOnWindowFocus,
+      retry: 2,
+      retryDelay: (attemptIndex: number) => Math.min(1000 * 2 ** attemptIndex, 30000),
+    })),
+  });
+
+  // Extract data from all queries
+  const services = queries.map(query => query.data);
+  
+  // Determine overall loading state (true if any query is loading)
+  const isLoading = queries.some(query => query.isLoading);
+  
+  // Determine overall error state (true if any query has an error)
+  const isError = queries.some(query => query.isError);
+  
+  // Get all errors
+  const errors = queries.map(query => query.error);
+  
+  // Determine success state (true if all queries are successful)
+  const isSuccess = queries.every(query => query.isSuccess);
+
+  // Function to refetch all services
+  const refetchAll = () => {
+    queries.forEach(query => query.refetch());
+  };
+
+  return {
+    services,
+    isLoading,
+    isError,
+    errors,
+    isSuccess,
+    refetchAll,
+    queries, // Raw queries for more granular control if needed
+  };
+};
+
+// Alternative hook for a single service (bonus)
+export const useServiceData = (
+  serviceName: string,
+  options: UseServicesDataOptions = {}
+) => {
+  const {
+    enabled = true,
+    staleTime = 5 * 60 * 1000,
+    cacheTime = 10 * 60 * 1000,
+    refetchInterval,
+    refetchOnWindowFocus = true,
+  } = options;
+
+  return useQuery({
+    queryKey: ['service', serviceName],
+    queryFn: () => fetchServiceData(serviceName),
+    enabled: enabled && Boolean(serviceName),
+    staleTime,
+    cacheTime,
+    refetchInterval,
+    refetchOnWindowFocus,
+    retry: 2,
+    retryDelay: (attemptIndex: number) => Math.min(1000 * 2 ** attemptIndex, 30000),
+  });
+};
